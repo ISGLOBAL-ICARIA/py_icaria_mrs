@@ -20,6 +20,9 @@ __email__ = "andreu.bofill@isglobal.org"
 __status__ = "Dev"
 
 if __name__ == '__main__':
+
+
+
     PROJECTS = tokens.REDCAP_PROJECTS_ICARIA
     group1_expected, group2_expected,group3_expected = mrs.expected_mrs()
 
@@ -27,12 +30,13 @@ if __name__ == '__main__':
     group2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
     group3_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
     for project_key in PROJECTS:
+
         print("[{}] Getting MRS records from {}...".format(datetime.now(), project_key))
 
         project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[project_key])
-        group1_df = mrs.export_records(project,project_key,['mrs_study_number_t2'],"[mrs_study_number_t2]!='' and [mrs_nasophar_swab_a_t2]='1' and [mrs_nasophar_swab_b_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='1'",group1_df).fillna(0)
-        group2_df = mrs.export_records(project,project_key,['mrs_study_number_t2'],"[mrs_study_number_t2]!='' and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",group2_df).fillna(0)
-        group3_df = mrs.export_records(project,project_key,['mrs_study_number_t2'],"[mrs_study_number_t2]!='' and [mrs_nasophar_swab_a_t2]='1' and [mrs_t2_group]='3'",group3_df).fillna(0)
+        group1_df = mrs.export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='') and [mrs_nasophar_swab_a_t2]='1' and [mrs_nasophar_swab_b_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='1'",group1_df).fillna(0)
+        group2_df = mrs.export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",group2_df).fillna(0)
+        group3_df = mrs.export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_t2_group]='3'",group3_df).fillna(0)
 
     print ("Groups Preparation . . . ")
     group1_df = mrs.groups_preparation(group1_df,params.group1_sample_size,group1_expected)
