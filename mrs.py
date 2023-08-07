@@ -6,6 +6,7 @@ import tokens
 import gspread
 from datetime import datetime, date
 from datetime import timedelta
+
 from gspread_dataframe import get_as_dataframe, set_with_dataframe
 import redcap
 
@@ -132,18 +133,18 @@ def expected_mrs_t3(group_name):
     phase2_expected = pd.DataFrame(index=['Group 1 exp', 'Group 2 exp','Total exp'],columns=['Phase','Group','Proportion', 'Sample Size', 'A', 'B', 'C', 'D', 'E', 'F'])
     phase3_expected = pd.DataFrame(index=['Group 1 exp', 'Group 2 exp','Total exp'],columns=['Phase','Group','Proportion', 'Sample Size', 'A', 'B', 'C', 'D', 'E', 'F'])
 
-    if group_name == 'MAGBURAKA':
-        phase1_expected.loc['Group 1 exp'] = ["Phase 1","Group 1 exp"] + params.MAG_p1_group1
-        phase1_expected.loc['Group 2 exp'] = ["Phase 1","Group 2 exp"] + params.MAG_p1_group2
-        phase1_expected.loc['Total exp'] = ["Phase 1","Total exp"] + params.MAG_p1_total
+    if group_name == 'HF08':
+        phase1_expected.loc['Group 1 exp'] = ["Phase 1","Group 1 exp"] + params.HF08_p1_group1
+        phase1_expected.loc['Group 2 exp'] = ["Phase 1","Group 2 exp"] + params.HF08_p1_group2
+        phase1_expected.loc['Total exp'] = ["Phase 1","Total exp"] + params.HF08_p1_total
 
-        phase2_expected.loc['Group 1 exp'] = ["Phase 2","Group 1 exp"] + params.MAG_p2_group1
-        phase2_expected.loc['Group 2 exp'] = ["Phase 2","Group 2 exp"] + params.MAG_p2_group2
-        phase2_expected.loc['Total exp'] = ["Phase 2","Total exp"] + params.MAG_p2_total
+        phase2_expected.loc['Group 1 exp'] = ["Phase 2","Group 1 exp"] + params.HF08_p2_group1
+        phase2_expected.loc['Group 2 exp'] = ["Phase 2","Group 2 exp"] + params.HF08_p2_group2
+        phase2_expected.loc['Total exp'] = ["Phase 2","Total exp"] + params.HF08_p2_total
 
-        phase3_expected.loc['Group 1 exp'] = ["Phase 1","Group 1 exp"] + params.MAG_p3_group1
-        phase3_expected.loc['Group 2 exp'] = ["Phase 2","Group 2 exp"] + params.MAG_p3_group2
-        phase3_expected.loc['Total exp'] = ["Phase 3","Total exp"] + params.MAG_p3_total
+        phase3_expected.loc['Group 1 exp'] = ["Phase 1","Group 1 exp"] + params.HF08_p3_group1
+        phase3_expected.loc['Group 2 exp'] = ["Phase 2","Group 2 exp"] + params.HF08_p3_group2
+        phase3_expected.loc['Total exp'] = ["Phase 3","Total exp"] + params.HF08_p3_total
 
     elif group_name == 'MAKENI':
         phase1_expected.loc['Group 1 exp'] = ["Phase 1","Group 1 exp"] + params.MAK_p1_group1
@@ -166,13 +167,12 @@ def expected_mrs_t3(group_name):
 
 
 def groups_preparation_t3(group,sample_size_group, expected,group_name):
-    print(group.index)
 
-    print(group.groupby(level=0).sum())
+#    print(group.groupby(level=0).sum())
     group = group.reset_index()
     group['index'] = group['index'].str.split(".").str[0]
     group = group.groupby('index').sum().astype(int)
-    print(group)
+ #   print(group)
     group1_total = [group['A'].sum(),group['B'].sum(),group['C'].sum(),group['D'].sum(),group['E'].sum(),group['F'].sum()]
     group.loc['Total'] = group1_total
 
@@ -184,9 +184,11 @@ def groups_preparation_t3(group,sample_size_group, expected,group_name):
 
     group['Phase'] = group_name
     group['Group'] = group.index
-    group = pd.concat([group,expected]).sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F']]
-    group = group.reset_index(drop=True)#.rename(columns={'index':'Group'})[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F']]
-    print(group)
+    #print(group.sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F'])
+    #print(expected)
+    group = pd.concat([group.sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F']],expected])
+    group = group.sort_values('Group').reset_index(drop=True)
+    #print(group)
 
     return group
 
@@ -195,60 +197,87 @@ def groups_preparation_t3(group,sample_size_group, expected,group_name):
 ### LIST OF CANDIDATES
 
 def drive_candidates_list(group_projects, name_group):
-    for project_key in group_projects:
+    for project_key in tokens.REDCAP_PROJECTS_ICARIA:
+        if name_group in str(project_key):
 
-        print("[{}] Getting MRS records from {}...".format(datetime.now(), project_key))
-        project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[project_key])
-        df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
+            print("[{}] Getting MRS records from {}...".format(datetime.now(), project_key))
+            project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[project_key])
+            df = project.export_records(format='df', fields=params.ALERT_LOGIC_FIELDS)
 
-        # Cast child_dob column from str to date
-        x = df.copy()
-        x['child_dob'] = pd.to_datetime(x['child_dob'])
-        dobs = x.groupby('record_id')['child_dob'].max()
-        dobs = dobs[dobs.notnull()]
-        # Filter those participants who are about to turn to 18 months
-        # First: Filter those older than 17 months old
+            # Cast child_dob column from str to date
+            x = df.copy()
+            x['child_dob'] = pd.to_datetime(x['child_dob'])
+            dobs = x.groupby('record_id')['child_dob'].max()
+            dobs = dobs[dobs.notnull()]
+            # Filter those participants who are about to turn to 18 months
+            # First: Filter those older than 17 months old
 
-        about_18m = dobs[dobs.apply(calculate_age_months) >= params.about_to_turn_18]
-        if about_18m.size > 0:
-            about_18m = about_18m[about_18m.apply(days_to_birthday, fu=18) < params.days_before_18]
+            about_18m = dobs[dobs.apply(calculate_age_months) >= params.about_to_turn_18]
+            if about_18m.size > 0:
+                about_18m = about_18m[about_18m.apply(days_to_birthday, fu=18) < params.days_before_18]
 
-        # Remove those participants who have already been visited and seen at home for the end of the trial follow up
-        finalized = x.query(
-            "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
-            "redcap_repeat_instrument == 'household_follow_up' and "
-            "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or  "
-            "hh_why_not_child_seen == 4 or hh_why_not_child_seen == 5)"
-        )
-        unreachable = x.query(
-            "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
-            "redcap_repeat_instrument == 'household_follow_up' and "
-            "reachable_status == 2")
+            less_than_75_days = x[x['int_azi']==1]
+            less_than_75_days = less_than_75_days.reset_index()[['record_id','int_date']]
+ #           print(less_than_75_days)
+            gb = less_than_75_days.groupby('record_id')['int_date'].apply(np.max)
+#            print(gb)
 
-        about_18m_not_seen = about_18m.index
-        record_ids_seen = None
-        records_unreachable = None
-        if finalized is not None:
-            record_ids_seen = finalized.index.get_level_values('record_id')
-            about_18m_not_seen = about_18m_not_seen.difference(record_ids_seen)
-        if unreachable is not None:
-            records_unreachable = unreachable.index.get_level_values('record_id')
-            about_18m_not_seen = about_18m_not_seen.difference(records_unreachable)
+            less_than_75_days = []
+            for k,el in gb.items():
+                days_from = datetime.today() - datetime.strptime(el, "%Y-%m-%d %H:%M:%S")
+
+                if days_from.days < 76:
+                    less_than_75_days.append(k)
+
+            print(less_than_75_days)
+                # Remove those participants who have already been visited and seen at home for the end of the trial follow up
+            finalized = x.query(
+                "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
+                "redcap_repeat_instrument == 'household_follow_up' and "
+                "(hh_child_seen == 1 or phone_child_status == 1 or phone_child_status == 4 or hh_why_not_child_seen == 1 or  "
+                "hh_why_not_child_seen == 4 or hh_why_not_child_seen == 5)"
+            )
+            unreachable = x.query(
+                "redcap_event_name == 'hhat_18th_month_of_arm_1' and "
+                "redcap_repeat_instrument == 'household_follow_up' and "
+                "reachable_status == 2")
+
+            endfu = x.query(
+                "redcap_event_name == 'end_of_fu_arm_1'"
+            )
+            print(endfu[endfu['death_reported_date'].notnull() | endfu['wdrawal_reported_date'].notnull()][['wdrawal_reported_date', 'death_reported_date']])
 
 
-        xres = df.reset_index()
-        about_18m_study_numbers = xres[xres['record_id'].isin(list(about_18m_not_seen))][['study_number']]
-        about_18m_study_numbers = list(about_18m_study_numbers.dropna())
+            about_18m_not_seen = about_18m.index
+            record_ids_seen = None
+            records_unreachable = None
 
-        df_letters = project.export_records(
-            format='df',
-            records=list(about_18m_not_seen.drop_duplicates()),
-            fields=["study_number", "int_random_letter"],
-            filter_logic="[study_number] != '' and [event-name]='epipenta1_v0_recru_arm_1'"
-        )
+            if less_than_75_days is not None:
+                about_18m_not_seen = about_18m_not_seen.difference(less_than_75_days)
 
-        records_letter = df_letters.groupby('int_random_letter')['study_number'].apply(list)
-#        print(records_letter)
+            if finalized is not None:
+                record_ids_seen = finalized.index.get_level_values('record_id')
+                about_18m_not_seen = about_18m_not_seen.difference(record_ids_seen)
+            if unreachable is not None:
+                records_unreachable = unreachable.index.get_level_values('record_id')
+                about_18m_not_seen = about_18m_not_seen.difference(records_unreachable)
+            print(about_18m_not_seen)
+            if endfu is not None:
+                records_endfu = endfu.index.get_level_values('record_id')
+                about_18m_not_seen = about_18m_not_seen.difference(records_endfu)
+            print(about_18m_not_seen)
+
+            xres = df.reset_index()
+            about_18m_study_numbers = xres[xres['record_id'].isin(list(about_18m_not_seen))][['study_number']]
+            about_18m_study_numbers = about_18m_study_numbers.dropna()
+            if len(about_18m_not_seen) > 0:
+                df_letters = project.export_records(
+                    format='df',
+                    records=list(about_18m_not_seen.drop_duplicates()),
+                    fields=["study_number", "int_random_letter","record_id"],
+                    filter_logic="[study_number] != '' and [event-name]='epipenta1_v0_recru_arm_1'"
+                )
+                records_letter = df_letters.groupby('int_random_letter')['study_number'].apply(list)
 
     new_dict = {}
     max_size = 0
@@ -262,7 +291,10 @@ def drive_candidates_list(group_projects, name_group):
 
         for i in range(max_size - len(el)):
             new_dict[k].append("")
+
     blank_df = pd.DataFrame(index=np.arange(100),columns=['A','B','C','D','E','F'])
     dict_to_excel = pd.DataFrame(data=new_dict)
-    entire_excel_sheet = pd.concat([dict_to_excel,blank_df],ignore_index=True)
+    entire_excel_sheet = pd.concat([dict_to_excel,blank_df],ignore_index=True)[['A','B','C','D','E','F']]
+
+    print(name_group,entire_excel_sheet,tokens.drive_candidates_name_t3,tokens.drive_folder)
     file_to_drive(name_group,entire_excel_sheet,tokens.drive_candidates_name_t3,tokens.drive_folder,index_included=False)

@@ -28,6 +28,10 @@ MRS_LOGIC_FIELDS = ['record_id', 'child_dob','mrs_study_number_t2','study_number
 
 
 
+PROJECTS = ['HF08','HF11','HF12','HF13','HF16','HF17']
+
+PATH_TO_EXPECTED_NUMBERS = "/home/ubuntu/software/scripts/py_icaria_mrs/MRS_T3_expected_numbers.xlsx"
+#PATH_TO_EXPECTED_NUMBERS = "/home/abofill/Documents/github/py_icaria_mrs/MRS_T3_expected_numbers.xlsx"
 
 # PARAMS FOR T3 SUMMARY TOOL
 
@@ -61,20 +65,25 @@ MAK_p3_group1 = ["21.27", "132", "22", "22", "22", "22", "22", "22"]
 MAK_p3_group2 = ["79.43", "480", "80", "80", "80", "80", "80", "80"]
 MAK_p3_total = ["100", "612", "102", "102", "102", "102", "102", "102"]
 
-MAG_sample_size = 342
-MAG_phase1_sample_size = 30
-MAG_phase2_sample_size = 30
-MAG_phase3_sample_size = 282
+HF08_sample_size = 342
+HF08_phase1_sample_size = 30
+HF08_phase2_sample_size = 30
+HF08_phase3_sample_size = 282
 
-MAG_p1_group1 = ["21.27", "6", "1", "1", "1", "1", "1", "1"]
-MAG_p1_group2 = ["79.43", "24", "4", "4", "4", "4", "4", "4"]
-MAG_p1_total = ["100", "30", "5", "5", "5", "5", "5", "5"]
-MAG_p2_group1 = ["21.27", "6", "1", "1", "1", "1", "1", "1"]
-MAG_p2_group2 = ["79.43", "24", "4", "4", "4", "4", "4", "4"]
-MAG_p2_total = ["100", "30", "5", "5", "5", "5", "5", "5"]
-MAG_p3_group1 = ["21.27", "60", "10", "10", "10", "10", "10", "10"]
-MAG_p3_group2 = ["79.43", "222", "37", "37", "37", "37", "37", "37"]
-MAG_p3_total = ["100", "282", "47", "47", "47", "47", "47", "47"]
+HF08_p1_group1 = ["21.27", "6", "1", "1", "1", "1", "1", "1"]
+HF08_p1_group2 = ["79.43", "24", "4", "4", "4", "4", "4", "4"]
+HF08_p1_total = ["100", "30", "5", "5", "5", "5", "5", "5"]
+HF08_p2_group1 = ["21.27", "6", "1", "1", "1", "1", "1", "1"]
+HF08_p2_group2 = ["79.43", "24", "4", "4", "4", "4", "4", "4"]
+HF08_p2_total = ["100", "30", "5", "5", "5", "5", "5", "5"]
+HF08_p3_group1 = ["21.27", "60", "10", "10", "10", "10", "10", "10"]
+HF08_p3_group2 = ["79.43", "222", "37", "37", "37", "37", "37", "37"]
+HF08_p3_total = ["100", "282", "47", "47", "47", "47", "47", "47"]
+
+
+
+HF_cohort_sample_size = {'HF08':[342,30,30,282],'HF11':[756,72,72,612],'HF12':[756,72,72,612],'HF13':[756,72,72,612],
+               'HF16':[756,72,72,612],'HF17':[756,72,72,612]}
 
 
 ### PARAMS FOR LIST OF CANDIDATES
@@ -88,4 +97,4 @@ ALERT_LOGIC_FIELDS = ['record_id', 'child_dob', 'screening_date', 'child_fu_stat
                       'child_birth_weight_known','phone_success','fu_type','hh_drug_react','hh_health_complaint',
                       'hh_mother_caretaker','hh_drug_react','hh_health_complaint','int_random_letter', 'death_reported_date',
                       'hh_date', 'ae_date','sae_awareness_date','ms_date','unsch_date','mig_date','comp_date','ch_his_date',
-                      'phone_child_status']
+                      'phone_child_status','wdrawal_reported_date']
