@@ -30,9 +30,6 @@ MRS_LOGIC_FIELDS = ['record_id', 'child_dob','mrs_study_number_t2','study_number
 
 PROJECTS = ['HF08','HF11','HF12','HF13','HF16','HF17']
 
-PATH_TO_EXPECTED_NUMBERS = "/home/ubuntu/software/scripts/py_icaria_mrs/MRS_T3_expected_numbers.xlsx"
-#PATH_TO_EXPECTED_NUMBERS = "/home/abofill/Documents/github/py_icaria_mrs/MRS_T3_expected_numbers.xlsx"
-
 # PARAMS FOR T3 SUMMARY TOOL
 
 t3_sample_size = 1098

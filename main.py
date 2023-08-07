@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
     PROJECTS = tokens.REDCAP_PROJECTS_ICARIA
 
-    expected_numbers = pd.read_excel(params.PATH_TO_EXPECTED_NUMBERS)
+    expected_numbers = pd.read_excel(tokens.PATH_TO_EXPECTED_NUMBERS)
 
     for proj in params.PROJECTS:
         print(proj)
