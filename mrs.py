@@ -100,9 +100,9 @@ class MRS_T2_FUNCTIONS:
 
         print("Saving tables on Google Drive . . .")
 
-       # file_to_drive('Phase 1',phase1_df,tokens.drive_file_name_t2,tokens.drive_folder)
-       # file_to_drive('Phase 2',phase2_df,tokens.drive_file_name_t2,tokens.drive_folder)
-       # file_to_drive('Phase 3',phase3_df,tokens.drive_file_name_t2,tokens.drive_folder)
+        file_to_drive('Phase 1',phase1_df,tokens.drive_file_name_t2,tokens.drive_folder)
+        file_to_drive('Phase 2',phase2_df,tokens.drive_file_name_t2,tokens.drive_folder)
+        file_to_drive('Phase 3',phase3_df,tokens.drive_file_name_t2,tokens.drive_folder)
         print ("\nFINISHED.\n")
 
     def expected_mrs_t2(self):
@@ -196,17 +196,15 @@ class MRS_T3_FUNCTIONS:
         all_df = pd.concat([phase1_group_df, phase2_group_df, phase3_group_df])
 
         print("Saving tables on Google Drive . . .")
-#         file_to_drive(proj, all_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
+         file_to_drive(proj, all_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
 
         print("Done.\n")
 
     def groups_preparation_t3(self,group,sample_size_group, expected,group_name):
-
-    #    print(group.groupby(level=0).sum())
         group = group.reset_index()
         group['index'] = group['index'].str.split(".").str[0]
         group = group.groupby('index').sum(numeric_only=True)
-        #group = group.groupby('index').sum().astype(int) ## OLD VERSION THAT GIVES A FUTUREWARNING ADVICE
+        ##group = group.groupby('index').sum().astype(int) ## OLD VERSION THAT GIVES A FUTUREWARNING ADVICE
 
         group1_total = [group['A'].sum(),group['B'].sum(),group['C'].sum(),group['D'].sum(),group['E'].sum(),group['F'].sum()]
         group.loc['Total'] = group1_total
@@ -338,6 +336,6 @@ class MRS_T3_FUNCTIONS:
 
         print("\tSaving sheet on Google Drive . . .")
 
-#        file_to_drive(proj,entire_excel_sheet,tokens.drive_candidates_name_t3,tokens.drive_folder,index_included=False)
+        file_to_drive(proj,entire_excel_sheet,tokens.drive_candidates_name_t3,tokens.drive_folder,index_included=False)
         print ("\tDone.\n")
 
