@@ -45,6 +45,7 @@ def days_to_birthday(dob, fu):
 def export_records(project,project_key,fields_,filter_logic,final_df, index=False):
     if index == False:
         index = project_key
+
     try:
         df_mrs = project.export_records(format='df', fields=fields_,filter_logic=filter_logic)
         record_ids = df_mrs.index.get_level_values('record_id')
@@ -57,13 +58,12 @@ def export_records(project,project_key,fields_,filter_logic,final_df, index=Fals
         letters = df_letters.groupby('int_random_letter')[['study_number']].count()
         letters = letters.rename(columns={'study_number': index.split(".")[0]})
 
-
         final_df = pd.concat([final_df, letters.T])
     except:
         noletters =pd.DataFrame(columns=['A','B','C','D','E','F'],index=[index])
         noletters.loc[index] = [0,0,0,0,0,0]
         final_df= pd.concat([final_df,noletters])
-    return final_df
+    return final_df.fillna(0)
 
 
 class MRS_T2_FUNCTIONS:
@@ -98,6 +98,11 @@ class MRS_T2_FUNCTIONS:
         phase2_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase2_df, params.phase2_sample_size,phase2_expected)
         phase3_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase3_df, params.phase3_sample_size,phase3_expected)
 
+        phase2_df = export_records(project, project_key, ['mrs_study_number_t2'],
+                "([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",
+                    phase2_df).fillna(0)
+
+        print(pd.concat([phase1_df,phase2_df,phase3_df]))
         print("Saving tables on Google Drive . . .")
 
         file_to_drive('Phase 1',phase1_df,tokens.drive_file_name_t2,tokens.drive_folder)
@@ -194,7 +199,7 @@ class MRS_T3_FUNCTIONS:
         phase2_group_df = MRS_T3_FUNCTIONS().groups_preparation_t3(phase2_df, params.HF_cohort_sample_size[proj][2], phase2_expected, group_name='Phase 2')
         phase3_group_df = MRS_T3_FUNCTIONS().groups_preparation_t3(phase3_df, params.HF_cohort_sample_size[proj][3], phase3_expected, group_name='Phase 3')
         all_df = pd.concat([phase1_group_df, phase2_group_df, phase3_group_df])
-
+        print(all_df)
         print("Saving tables on Google Drive . . .")
         file_to_drive(proj, all_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
 
@@ -231,6 +236,8 @@ class MRS_T3_FUNCTIONS:
         print("LIST OF PARTICIPANTS for {}\n".format(proj))
 
         records_letter = pd.DataFrame()
+        records_letter_g1 = pd.DataFrame()
+        records_letter_g2 = pd.DataFrame()
         for project_key in tokens.REDCAP_PROJECTS_ICARIA:
             if proj in str(project_key):
 
@@ -293,28 +300,56 @@ class MRS_T3_FUNCTIONS:
                     endfu = endfu[endfu['death_date'].notnull() | endfu['wdrawal_date'].notnull()]
                     records_endfu = endfu.index.get_level_values('record_id')
                     about_18m_not_seen = about_18m_not_seen.difference(records_endfu)
+                ### GET GROUP 1 OR GROUP 2
+                ## GROUP 2
 
-                if len(about_18m_not_seen) > 0:
-                    df_letters = project.export_records(
-                        format='df',
-                        records=list(about_18m_not_seen.drop_duplicates()),
-                        fields=["study_number", "int_random_letter","record_id"],
-                        filter_logic="[study_number] != '' and [event-name]='epipenta1_v0_recru_arm_1'"
-                    )
-                    # Group the study_numbers per letter
-                    if records_letter.empty:
-                        records_letter = df_letters.groupby('int_random_letter')['study_number'].apply(list)
+                group2_df = project.export_records(format='df', fields=['int_date','int_azi'], filter_logic="[int_azi] ='1' and [int_date] !='' ")
+                group2_df = group2_df.groupby('record_id')['int_azi'].count()
+                group2_df = group2_df.reset_index().set_index('record_id')
+                group2_record_ids = group2_df[group2_df['int_azi']>2].index.unique()
+
+                about_18m_not_seen_g2 = []
+                about_18m_not_seen_g1 = []
+                for l in about_18m_not_seen:
+                    if l in group2_record_ids:
+                        about_18m_not_seen_g2.append(l)
                     else:
-                        # Group the study_numbers per letter for these projects with subprojects
-                        for k, el in df_letters.groupby('int_random_letter')['study_number'].apply(list).items():
-                            for l in el:
-                                try:
-                                    records_letter[k].append(l)
-                                except:
-                                    records_letter[k] = []
-                                    records_letter[k].append(l)
+                        about_18m_not_seen_g1.append(l)
+
+                records_letter_g1 = MRS_T3_FUNCTIONS().get_letters_from_candidates_t3(project, about_18m_not_seen_g1,records_letter_g1)
+                records_letter_g2 = MRS_T3_FUNCTIONS().get_letters_from_candidates_t3(project, about_18m_not_seen_g2,records_letter_g2)
+
 
         print("\tCreating sheet DataFrame . . .")
+        # In order to write into the Google Sheet, we need to determine all the space used to save it in a square matrix
+        MRS_T3_FUNCTIONS().create_and_upload_sheet_drive(proj,records_letter_g1,'group1')
+        MRS_T3_FUNCTIONS().create_and_upload_sheet_drive(proj,records_letter_g2,'group2')
+        print ("\tDone.\n")
+
+
+    def get_letters_from_candidates_t3(self, project, about_18m_not_seen, records_letter):
+        if len(about_18m_not_seen) > 0:
+            df_letters = project.export_records(
+                format='df',
+                records=list(about_18m_not_seen),
+                fields=["study_number", "int_random_letter", "record_id"],
+                filter_logic="[study_number] != '' and [event-name]='epipenta1_v0_recru_arm_1'"
+            )
+            # Group the study_numbers per letter
+            if records_letter.empty:
+                records_letter = df_letters.groupby('int_random_letter')['study_number'].apply(list)
+            else:
+                # Group the study_numbers per letter for these projects with subprojects
+                for k, el in df_letters.groupby('int_random_letter')['study_number'].apply(list).items():
+                    for l in el:
+                        try:
+                            records_letter[k].append(l)
+                        except:
+                            records_letter[k] = []
+                            records_letter[k].append(l)
+        return records_letter
+
+    def create_and_upload_sheet_drive(self,proj,records_letter,group):
         # In order to write into the Google Sheet, we need to determine all the space used to save it in a square matrix
         new_dict = {}
         max_size = 0
@@ -329,13 +364,12 @@ class MRS_T3_FUNCTIONS:
             for i in range(max_size - len(el)):
                 new_dict[k].append("")
 
-        blank_df = pd.DataFrame(index=np.arange(100),columns=['A','B','C','D','E','F'])
+        blank_df = pd.DataFrame(index=np.arange(100), columns=['A', 'B', 'C', 'D', 'E', 'F'])
         dict_to_excel = pd.DataFrame(data=new_dict)
-        entire_excel_sheet = pd.concat([dict_to_excel,blank_df],ignore_index=True)[['A','B','C','D','E','F']]
-        #print(entire_excel_sheet.head())
+        entire_excel_sheet = pd.concat([dict_to_excel, blank_df], ignore_index=True)[['A', 'B', 'C', 'D', 'E', 'F']]
+        file_name = tokens.dict_files_t3[proj]
+        sheet = proj + "." + group
+        print(sheet)
+        print(entire_excel_sheet.head())
 
-        print("\tSaving sheet on Google Drive . . .")
-
-        file_to_drive(proj,entire_excel_sheet,tokens.drive_candidates_name_t3,tokens.drive_folder,index_included=False)
-        print ("\tDone.\n")
-
+        file_to_drive(sheet,entire_excel_sheet,tokens.dict_files_t3[proj],tokens.drive_folder,index_included=False)
