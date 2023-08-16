@@ -1,4 +1,5 @@
 PROJECTS = ['HF08','HF11','HF12','HF13','HF16','HF17']
+#PROJECTS = ['HF11']
 
 # T2 EXPECTED NUMBER OF CANDIDATES PER PHASE
 phase1_sample_size = 102
@@ -25,9 +26,9 @@ phase3_stocco = ['4.70', '42', '7', '7', '7', '7', '7', '7']
 total_phase3 = ['100','894','149','149','149','149','149','149']
 
 
-# T3 TOTAL NUMBER OF CANDIDATES [Sample size | phase1 | phase2 | phase3]
-HF_cohort_sample_size = {'HF08':[342,30,30,282],'HF11':[756,72,72,612],'HF12':[756,72,72,612],'HF13':[756,72,72,612],
-               'HF16':[756,72,72,612],'HF17':[756,72,72,612]}
+# T3 TOTAL NUMBER OF CANDIDATES [Sample size | group1 | group2]
+HF_cohort_sample_size = {'HF08':[318,54,264],'HF11':[101,20,81],'HF12':[112,18,93],'HF13':[90,12,78],
+               'HF16':[381,64,317],'HF17':[96,18,78]}
 
 ### PARAMS FOR T3 18 MoA participants
 about_to_turn_18 = 17

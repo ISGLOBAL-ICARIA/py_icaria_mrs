@@ -63,6 +63,7 @@ def export_records(project,project_key,fields_,filter_logic,final_df, index=Fals
         noletters =pd.DataFrame(columns=['A','B','C','D','E','F'],index=[index])
         noletters.loc[index] = [0,0,0,0,0,0]
         final_df= pd.concat([final_df,noletters])
+
     return final_df.fillna(0)
 
 
@@ -75,10 +76,17 @@ class MRS_T2_FUNCTIONS:
         pass
 
     def mrs_t2_control_sheet(self):
+        """
+        Genereate the summary tool for MRS T2 from all MRS data in REDCap
+        :return: Save to the Google Drive Sheet the MRS T2 summary for each Phase of the MRS project
+        """
+
         # Expected number of recruitments per Phase in MRS T2
         print("\nMRS T2 SUMMARY TOOL\n")
         print("Extracting expected number of recruitments per HF and letter . . .")
         phase1_expected, phase2_expected,phase3_expected = MRS_T2_FUNCTIONS().expected_mrs_t2()
+
+        # Getting all records from MRS T2  a d getting the numbers per letter
         phase1_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
         phase2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
         phase3_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
@@ -92,8 +100,9 @@ class MRS_T2_FUNCTIONS:
                 phase2_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",phase2_df).fillna(0)
             phase3_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_t2_group]='3'",phase3_df).fillna(0)
 
-        print ("Groups Preparation . . . ")
+        # Generating the good format, including the expected number of samples together with the wanted data
 
+        print ("Groups Preparation . . . ")
         phase1_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase1_df, params.phase1_sample_size,phase1_expected)
         phase2_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase2_df, params.phase2_sample_size,phase2_expected)
         phase3_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase3_df, params.phase3_sample_size,phase3_expected)
@@ -105,12 +114,16 @@ class MRS_T2_FUNCTIONS:
         print(pd.concat([phase1_df,phase2_df,phase3_df]))
         print("Saving tables on Google Drive . . .")
 
+        # Saving int each Google Drive sheet tab, each phase page
         file_to_drive('Phase 1',phase1_df,tokens.drive_file_name_t2,tokens.drive_folder)
         file_to_drive('Phase 2',phase2_df,tokens.drive_file_name_t2,tokens.drive_folder)
         file_to_drive('Phase 3',phase3_df,tokens.drive_file_name_t2,tokens.drive_folder)
         print ("\nFINISHED.\n")
 
     def expected_mrs_t2(self):
+        """
+        :return: 3 DataFrames, for each phase, with all expected recruitments per HF and letter
+        """
         phase1_expected = pd.DataFrame(index=['HF08 exp', 'HF11 exp', 'HF12 exp', 'HF16 exp','Total exp'],columns=['Proportion', 'Sample Size', 'A', 'B', 'C', 'D', 'E', 'F'])
         phase2_expected = pd.DataFrame(index=['HF08 exp', 'HF11 exp', 'HF12 exp', 'HF16 exp','Total exp'],
                                    columns=['Proportion', 'Sample Size', 'A', 'B', 'C', 'D', 'E', 'F'])
@@ -140,6 +153,18 @@ class MRS_T2_FUNCTIONS:
         return phase1_expected,phase2_expected,phase3_expected
 
     def groups_preparation_t2(self,group,sample_size_group, expected):
+        """
+        This function works preparing the number of recruitments per letter, joining all different subprojects if exist
+        and obtaining only one row per project. It generates the actual sample size and the actul proportion of candidates.
+        The list of expected candidates per HF for this phase is also saved and put together
+        :param group: DataFrame of number of recruitments per each subproject of the big project
+        :type group: pandas DataFrame
+        :param sample_size_group: Sample size expected for that phase
+        :type sample_size_group: int
+        :param expected: list of expected recruitments per each project. Same format than the group field.
+        :type expected: pandas Dataframe
+        :return: DataFrame with number per letter .Both expected and actual one.
+        """
         group = group.reset_index()
         group['index'] = group['index'].str.split(".").str[0]
         group = group.groupby('index').sum().astype(int)
@@ -170,9 +195,12 @@ class MRS_T3_FUNCTIONS:
 
         expected_numbers = pd.read_excel(tokens.PATH_TO_EXPECTED_NUMBERS)
         proj_expected = expected_numbers[expected_numbers['HF'] == proj].T[2:].T
-        phase1_expected = proj_expected[proj_expected['Phase'] == 'Phase 1']
-        phase2_expected = proj_expected[proj_expected['Phase'] == 'Phase 2']
-        phase3_expected = proj_expected[proj_expected['Phase'] == 'Phase 3']
+        #phase1_expected = proj_expected[proj_expected['Phase'] == 'Phase 1']
+        #phase2_expected = proj_expected[proj_expected['Phase'] == 'Phase 2']
+        #phase3_expected = proj_expected[proj_expected['Phase'] == 'Phase 3']
+
+        group1_expected = proj_expected[proj_expected['Group'] == 'Group 1']
+        group2_expected = proj_expected[proj_expected['Group'] == 'Group 2']
 
         phase1_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
         phase2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
@@ -182,7 +210,6 @@ class MRS_T3_FUNCTIONS:
             if str(proj) in str(subproj):
                 print("[{}] Getting MRS records from {}...".format(datetime.now(), subproj))
                 project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[subproj])
-
                 phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and (([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epimvr2_v6_iptisp6_arm_1][int_azi]!='1') or ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' and [epimvr2_v6_iptisp6_arm_1][int_azi]!='1') or ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'))", phase1_df, index='Group 1').fillna(0)
                 phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and [epimvr1_v4_iptisp4_arm_1][int_azi]='1' and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase1_df, index='Group 2').fillna(0)
                 phase1_df['Phase'] = 'Phase 1'
@@ -193,17 +220,70 @@ class MRS_T3_FUNCTIONS:
                 phase3_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_t2_group_t3]='3' and [epipenta1_v0_recru_arm_1][int_azi]='1' and [epimvr1_v4_iptisp4_arm_1][int_azi]='1' and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase3_df, index='Group 2').fillna(0)
                 phase3_df['Phase'] = 'Phase 3'
 
+        phase1_df= phase1_df.reset_index().groupby('index').sum(numeric_only=True)
+        phase2_df= phase2_df.reset_index().groupby('index').sum(numeric_only=True)
+        phase3_df= phase3_df.reset_index().groupby('index').sum(numeric_only=True)
+        phase1_df['Phase'] = 'Phase 1'
+        phase2_df['Phase'] = 'Phase 2'
+        phase3_df['Phase'] = 'Phase 3'
+
+        together = pd.concat([phase1_df,phase2_df,phase3_df]).reset_index()
+        group1_df = together[together['index']=='Group 1'].set_index(('index'))
+        group2_df = together[together['index']=='Group 2'].set_index(('index'))
+
+        #  print(group1_df)
         print("Groups Preparation . . . ")
 
-        phase1_group_df = MRS_T3_FUNCTIONS().groups_preparation_t3(phase1_df, params.HF_cohort_sample_size[proj][1], phase1_expected, group_name='Phase 1')
-        phase2_group_df = MRS_T3_FUNCTIONS().groups_preparation_t3(phase2_df, params.HF_cohort_sample_size[proj][2], phase2_expected, group_name='Phase 2')
-        phase3_group_df = MRS_T3_FUNCTIONS().groups_preparation_t3(phase3_df, params.HF_cohort_sample_size[proj][3], phase3_expected, group_name='Phase 3')
-        all_df = pd.concat([phase1_group_df, phase2_group_df, phase3_group_df])
+        group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_df, params.HF_cohort_sample_size[proj][1], group1_expected, group_name='Group 1')
+        group2_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group2_df, params.HF_cohort_sample_size[proj][2], group2_expected, group_name='Group 2')
+        all_df = pd.concat([group1_group_df,group2_group_df])
+
+        group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group1_group_df)
+        group2_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group2_group_df)
+        all_no_exp_df = pd.concat([group1_group_no_exp_df,group2_group_no_exp_df])
+        print(all_no_exp_df)
         print(all_df)
         print("Saving tables on Google Drive . . .")
-        file_to_drive(proj, all_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
+        file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
+        file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
 
         print("Done.\n")
+
+    def groups_preparation_no_exp_t3(self,group):
+        df_to_compare = group[['Sample Size','A','B','C','D','E','F']].astype(int)
+        to_set = pd.concat([group[['Group','Phase']].loc[[0,2,4]].reset_index(drop=True),df_to_compare.diff().loc[[1,3,5]].reset_index(drop=True)], axis=1)
+        #print(to_set)
+        return to_set
+
+    def groups_preparation_per_groups_t3(self, group, sample_size_group, expected, group_name):
+        expected = expected[expected['Phase'] != 'Total exp']
+        expected['Proportion'] = expected['Proportion'].astype(float).round(2)
+
+        group = group.reset_index()
+        total = group.groupby('index').sum(numeric_only=True).reset_index()
+        ##group = group.groupby('index').sum().astype(int) ## OLD VERSION THAT GIVES A FUTUREWARNING ADVICE
+        total['Phase'] = "Total"
+
+        #        group1_total = [group['A'].sum(),group['B'].sum(),group['C'].sum(),group['D'].sum(),group['E'].sum(),group['F'].sum()]
+        #        group.loc['Total'] = total
+        group = group.set_index('Phase')
+        sample_size = []
+
+        for k in group.index:
+            sample_size.append(group[['A', 'B', 'C', 'D', 'E', 'F']].T[k].sum())
+        group['Sample Size'] = sample_size
+        group['Proportion'] = ["%.2f" % (float(x) / (sample_size_group / 100)) for x in sample_size]
+        group = group.reset_index().rename(columns={'index': 'Group'})
+        #        group['Phase'] = group_name
+        #        group['Group'] = group.index
+        # print(group.sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F'])
+        #print(expected)
+
+        group = pd.concat(
+            [group.sort_index()[['Group', 'Phase', 'Proportion', 'Sample Size', 'A', 'B', 'C', 'D', 'E', 'F']],
+             expected])
+        group = group.sort_values('Phase').reset_index(drop=True)
+        return group
 
     def groups_preparation_t3(self,group,sample_size_group, expected,group_name):
         group = group.reset_index()
