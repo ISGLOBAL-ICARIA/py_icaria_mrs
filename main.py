@@ -19,7 +19,7 @@ __status__ = "Dev"
 if __name__ == '__main__':
 
     #### MRS T2 SUMMARY TOOL ####
-    mrs.MRS_T2_FUNCTIONS().mrs_t2_control_sheet()
+    #mrs.MRS_T2_FUNCTIONS().mrs_t2_control_sheet()
 
     #### MRS T3 SUMMARY TOOL AND LIST OF T3 CANDIDATES ####
     for proj in params.PROJECTS:

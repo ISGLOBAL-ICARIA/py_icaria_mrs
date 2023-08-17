@@ -42,7 +42,7 @@ def days_to_birthday(dob, fu):
     today = datetime.today()
     return (dob + relativedelta(months=+fu) - today).days
 
-def export_records(project,project_key,fields_,filter_logic,final_df, index=False):
+def export_records(project,project_key,fields_,filter_logic,final_df, index=False,print_=False):
     if index == False:
         index = project_key
 
@@ -55,6 +55,8 @@ def export_records(project,project_key,fields_,filter_logic,final_df, index=Fals
             fields=["study_number", "int_random_letter"],
             filter_logic="[study_number] != ''"
         )
+        if print_:
+            print(df_letters.index)
         letters = df_letters.groupby('int_random_letter')[['study_number']].count()
         letters = letters.rename(columns={'study_number': index.split(".")[0]})
 
@@ -96,20 +98,15 @@ class MRS_T2_FUNCTIONS:
             project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[project_key])
 
             if project_key not in ['HF13','HF17']:
-                phase1_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='') and [mrs_nasophar_swab_a_t2]='1' and [mrs_nasophar_swab_b_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='1'",phase1_df).fillna(0)
-                phase2_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",phase2_df).fillna(0)
-            phase3_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_t2_group]='3'",phase3_df).fillna(0)
-
+                phase1_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_date_t2]!='') and [mrs_nasophar_swab_a_t2]='1' and [mrs_nasophar_swab_b_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='1'",phase1_df).fillna(0)
+                phase2_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_date_t2]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",phase2_df).fillna(0)
+            phase3_df = export_records(project,project_key,['mrs_study_number_t2'],"([mrs_date_t2]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_t2_group]='3'",phase3_df).fillna(0)
         # Generating the good format, including the expected number of samples together with the wanted data
 
         print ("Groups Preparation . . . ")
         phase1_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase1_df, params.phase1_sample_size,phase1_expected)
         phase2_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase2_df, params.phase2_sample_size,phase2_expected)
         phase3_df = MRS_T2_FUNCTIONS().groups_preparation_t2(phase3_df, params.phase3_sample_size,phase3_expected)
-
-        phase2_df = export_records(project, project_key, ['mrs_study_number_t2'],
-                "([mrs_study_number_t2]!='' or [mrs_t2_photo_labels]!='')  and [mrs_nasophar_swab_a_t2]='1' and [mrs_rectal_swab_t2]='1' and [mrs_t2_group]='2'",
-                    phase2_df).fillna(0)
 
         print(pd.concat([phase1_df,phase2_df,phase3_df]))
         print("Saving tables on Google Drive . . .")
@@ -241,11 +238,11 @@ class MRS_T3_FUNCTIONS:
         group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group1_group_df)
         group2_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group2_group_df)
         all_no_exp_df = pd.concat([group1_group_no_exp_df,group2_group_no_exp_df])
-        print(all_no_exp_df)
-        print(all_df)
+        #print(all_no_exp_df)
+        #print(all_df)
         print("Saving tables on Google Drive . . .")
-        file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
-        file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
+#        file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
+#        file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
 
         print("Done.\n")
 
@@ -257,7 +254,9 @@ class MRS_T3_FUNCTIONS:
 
     def groups_preparation_per_groups_t3(self, group, sample_size_group, expected, group_name):
         expected = expected[expected['Phase'] != 'Total exp']
-        expected['Proportion'] = expected['Proportion'].astype(float).round(2)
+
+        expected['Proportion']  = expected['Proportion'].astype(float)
+        expected = expected.round({'Proportion':2})
 
         group = group.reset_index()
         total = group.groupby('index').sum(numeric_only=True).reset_index()
