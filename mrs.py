@@ -68,7 +68,32 @@ def export_records(project,project_key,fields_,filter_logic,final_df, index=Fals
 
     return final_df.fillna(0)
 
+"""
+def export_records_2(project,project_key,fields_,filter_logic,final_df, index=False):
+    if index == False:
+        index = project_key
+    try:
 
+        df_mrs = project.export_records(format='df', fields=fields_,filter_logic=filter_logic)
+        record_ids = df_mrs.index.get_level_values('record_id')
+        df_mrs = df_mrs.reset_index().set_index('record_id')
+        df_mrs = df_mrs[['mrs_date_t3','mrs_study_number_t2_t3']]
+        #print(df_mrs)
+        df_letters = project.export_records(
+            format='df',
+            records=list(record_ids.drop_duplicates()),
+            fields=["study_number", "int_random_letter"],
+            filter_logic="[study_number] != ''"
+        )
+        df_letters_ni = df_letters.reset_index().set_index('record_id')
+        #print(df_letters_ni)
+        together = pd.concat([df_mrs,df_letters_ni[['int_random_letter']]],axis=1,join='inner')
+        #print(together)
+        final_df = pd.concat([final_df,together])
+    except:
+        pass
+    return final_df
+"""
 class MRS_T2_FUNCTIONS:
     """
     T2 Project functions
@@ -202,7 +227,7 @@ class MRS_T3_FUNCTIONS:
         phase1_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
         phase2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
         phase3_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
-
+        """all_together_phase_1_group2_t3 = pd.DataFrame(columns=['mrs_date_t3','mrs_study_number_t2_t3','int_random_letter'])"""
         for subproj in tokens.REDCAP_PROJECTS_ICARIA:
             if str(proj) in str(subproj):
                 print("[{}] Getting MRS records from {}...".format(datetime.now(), subproj))
@@ -210,6 +235,10 @@ class MRS_T3_FUNCTIONS:
                 phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase1_df, index='Group 1').fillna(0)
                 phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase1_df, index='Group 2').fillna(0)
                 phase1_df['Phase'] = 'Phase 1'
+
+                """
+                all_together_phase_1_group2_t3 = export_records_2(project, subproj, ['mrs_study_number_t2_t3','mrs_date_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", all_together_phase_1_group2_t3, index='Group 2').fillna(0)
+                """
                 phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase2_df, index='Group 1',print_=True).fillna(0)
                 phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase2_df, index='Group 2').fillna(0)
                 phase2_df['Phase'] = 'Phase 2'
@@ -222,13 +251,18 @@ class MRS_T3_FUNCTIONS:
         phase1_df['Phase'] = 'Phase 1'
         phase2_df['Phase'] = 'Phase 2'
         phase3_df['Phase'] = 'Phase 3'
-
+        """
+        all_together_phase_1_group2_t3 = all_together_phase_1_group2_t3.sort_values('mrs_date_t3')
+        print(all_together_phase_1_group2_t3)
+        print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='E'])
+        print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='C'])
+        """
         together = pd.concat([phase1_df,phase2_df,phase3_df]).reset_index()
-        print(together)
+        #print(together)
         group1_df = together[together['index']=='Group 1'].set_index(('index'))
         group2_df = together[together['index']=='Group 2'].set_index(('index'))
-        print(group1_df)
-        print(group2_df)
+        #print(group1_df)
+        #print(group2_df)
         print("Groups Preparation . . . ")
 
         group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_df, params.HF_cohort_sample_size[proj][1], group1_expected, group_name='Group 1')
@@ -240,6 +274,7 @@ class MRS_T3_FUNCTIONS:
         all_no_exp_df = pd.concat([group1_group_no_exp_df,group2_group_no_exp_df])
         #print(all_no_exp_df)
         #print(all_df)
+
         print("Saving tables on Google Drive . . .")
         file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
         file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
@@ -332,18 +367,17 @@ class MRS_T3_FUNCTIONS:
 
                 print("\t\tFiltering <18 MoA and <2.5 months from the last Azi dose participants . . .")
                 # Filter those participants who are about to turn to 18 months
-                # First: Filter those older than 17 months old
+                # First: Filter those older than 17 months oldº
                 about_18m = dobs[dobs.apply(calculate_age_months) >= params.about_to_turn_18]
                 if about_18m.size > 0:
                     about_18m = about_18m[about_18m.apply(days_to_birthday, fu=18) < params.days_before_18]
-
                 # Filter those childs with last azi dose > 2.5 months (75 days)
                 less_than_75_days = x[x['int_azi']==1]
                 less_than_75_days = less_than_75_days.reset_index()[['record_id','int_date']]
                 gb = less_than_75_days.groupby('record_id')['int_date'].apply(np.max)
                 less_than_75_days = []
                 for k,el in gb.items():
-                    days_from = datetime.today() - datetime.strptime(el, "%Y-%m-%d %H:%M:%S")
+                    days_from = datetime.today().replace(hour=0,minute=0,second=0, microsecond=0)  - datetime.strptime(el, "%Y-%m-%d %H:%M:%S").replace(hour=0,minute=0,second=0,microsecond=0)
 
                     if days_from.days < 76:
                         less_than_75_days.append(k)
@@ -366,6 +400,7 @@ class MRS_T3_FUNCTIONS:
                 about_18m_not_seen = about_18m.index
                 if less_than_75_days is not None:
                     about_18m_not_seen = about_18m_not_seen.difference(less_than_75_days)
+
                 if finalized is not None:
                     record_ids_seen = finalized.index.get_level_values('record_id')
                     about_18m_not_seen = about_18m_not_seen.difference(record_ids_seen)
