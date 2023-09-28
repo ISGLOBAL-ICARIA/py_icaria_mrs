@@ -414,6 +414,10 @@ class MRS_T3_FUNCTIONS:
                     endfu = endfu[endfu['death_date'].notnull() | endfu['wdrawal_date'].notnull()]
                     records_endfu = endfu.index.get_level_values('record_id')
                     about_18m_not_seen = about_18m_not_seen.difference(records_endfu)
+
+                # Removing participants who received a wrong azi/Pbo administration letter
+                about_18m_not_seen = about_18m_not_seen.difference(params.not_recruitable_participants)
+
                 ### GET GROUP 1 OR GROUP 2
                 ## GROUP 2
 
