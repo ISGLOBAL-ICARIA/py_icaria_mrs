@@ -1,4 +1,7 @@
 PROJECTS = ['HF08','HF11','HF12','HF13','HF16','HF17']
+#PROJECTS = ['HF11','HF12','HF13','HF16','HF17']
+
+MAKENI_PROJECTS = ['HF11','HF12','HF13','HF16','HF17']
 
 # T2 EXPECTED NUMBER OF CANDIDATES PER PHASE
 phase1_sample_size = 102
@@ -31,7 +34,7 @@ not_recruitable_participants = ['12010219','5010055','8010561','8021447','802152
 
 # T3 TOTAL NUMBER OF CANDIDATES [Sample size | group1 | group2]
 HF_cohort_sample_size = {'HF08':[318,54,264],'HF11':[101,20,81],'HF12':[112,18,93],'HF13':[90,12,78],
-               'HF16':[381,64,317],'HF17':[96,18,78]}
+               'HF16':[381,64,317],'HF17':[96,18,78],'makeni':[795,126,648]}
 
 ### PARAMS FOR T3 18 MoA participants
 about_to_turn_18 = 17
@@ -44,4 +47,8 @@ ALERT_LOGIC_FIELDS = [
 ]
 
 
+LOGIC_FIELDS_MRS = [
+    'record_id','mrs_study_number_t2_t3','mrs_date_t3','mrs_t2_group_t3',
+    'mrs_study_number_t2','mrs_t2_group','mrs_date_t2', 'mrs_study_number','mrs_date'
+]
 

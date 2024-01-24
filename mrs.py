@@ -5,6 +5,7 @@ import params
 import tokens
 import gspread
 from datetime import datetime
+import math
 
 from gspread_dataframe import set_with_dataframe
 import redcap
@@ -212,74 +213,129 @@ class MRS_T3_FUNCTIONS:
         pass
 
     def mrs_t3_summary_tool(self, proj):
+        total_group1_df = pd.DataFrame(columns=['A','B','C','D','E','F','Phase'])
+        group1_dict = {'Phase 1': [0,0,0,0,0,0], 'Phase 2': [0,0,0,0,0,0], 'Phase 3': [0,0,0,0,0,0]}
+        group2_dict = {'Phase 1': [0,0,0,0,0,0], 'Phase 2': [0,0,0,0,0,0], 'Phase 3': [0,0,0,0,0,0]}
 
-        print("SUMMARY TOOL for {}\n".format(proj))
+        for proj in params.PROJECTS:
+            print("MRS T3 SUMMARY TOOL AND LIST OF T3 CANDIDATES for {}\n".format(proj))
+
+            print("SUMMARY TOOL for {}\n".format(proj))
+
+            expected_numbers = pd.read_excel(tokens.PATH_TO_EXPECTED_NUMBERS)
+            proj_expected = expected_numbers[expected_numbers['HF'] == proj].T[2:].T
+            group1_expected = proj_expected[proj_expected['Group'] == 'Group 1']
+            group2_expected = proj_expected[proj_expected['Group'] == 'Group 2']
+
+            phase1_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
+            phase2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
+            phase3_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
+            """all_together_phase_1_group2_t3 = pd.DataFrame(columns=['mrs_date_t3','mrs_study_number_t2_t3','int_random_letter'])"""
+            for subproj in tokens.REDCAP_PROJECTS_ICARIA:
+                if str(proj) in str(subproj):
+                    print("[{}] Getting MRS records from {}...".format(datetime.now(), subproj))
+                    project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[subproj])
+                    phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase1_df, index='Group 1').fillna(0)
+                    phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase1_df, index='Group 2').fillna(0)
+                    phase1_df['Phase'] = 'Phase 1'
+
+                    """
+                    all_together_phase_1_group2_t3 = export_records_2(project, subproj, ['mrs_study_number_t2_t3','mrs_date_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", all_together_phase_1_group2_t3, index='Group 2').fillna(0)
+                    """
+                    phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase2_df, index='Group 1',print_=True).fillna(0)
+                    phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase2_df, index='Group 2').fillna(0)
+                    phase2_df['Phase'] = 'Phase 2'
+                    phase3_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_t2_group_t3]='3' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase3_df, index='Group 1').fillna(0)
+                    phase3_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_t2_group_t3]='3' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase3_df, index='Group 2').fillna(0)
+                    phase3_df['Phase'] = 'Phase 3'
+            phase1_df= phase1_df.reset_index().groupby('index').sum(numeric_only=True)
+            phase2_df= phase2_df.reset_index().groupby('index').sum(numeric_only=True)
+            phase3_df= phase3_df.reset_index().groupby('index').sum(numeric_only=True)
+            phase1_df['Phase'] = 'Phase 1'
+            phase2_df['Phase'] = 'Phase 2'
+            phase3_df['Phase'] = 'Phase 3'
+            """
+            all_together_phase_1_group2_t3 = all_together_phase_1_group2_t3.sort_values('mrs_date_t3')
+            print(all_together_phase_1_group2_t3)
+            print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='E'])
+            print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='C'])
+            """
+            together = pd.concat([phase1_df,phase2_df,phase3_df]).reset_index()
+            #print(together)
+            group1_df = together[together['index']=='Group 1'].set_index(('index'))
+            group2_df = together[together['index']=='Group 2'].set_index(('index'))
+
+            if proj in params.MAKENI_PROJECTS:
+                group1_df_to_join =group1_df.reset_index(drop=True).set_index('Phase')
+                for k,el in group1_df_to_join.T.items():
+                    res = list()
+                    #print(k,list(el))
+                    for i in range(0, len(el)):
+                        res.append(el[i]+group1_dict[k][i])
+                    group1_dict[k] = res
+
+            if proj in params.MAKENI_PROJECTS:
+                group2_df_to_join = group2_df.reset_index(drop=True).set_index('Phase')
+                for k, el in group2_df_to_join.T.items():
+                    res = list()
+                    #print(k, list(el))
+                    for i in range(0, len(el)):
+                        res.append(el[i] + group2_dict[k][i])
+                    group2_dict[k] = res
+                #print(group1_dict)
+
+            #print(group2_df)
+            print("Groups Preparation . . . ")
+
+            group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_df, params.HF_cohort_sample_size[proj][1], group1_expected, group_name='Group 1')
+            group2_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group2_df, params.HF_cohort_sample_size[proj][2], group2_expected, group_name='Group 2')
+            all_df = pd.concat([group1_group_df,group2_group_df])
+
+            group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group1_group_df)
+            group2_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group2_group_df)
+            all_no_exp_df = pd.concat([group1_group_no_exp_df,group2_group_no_exp_df])
+            #print(all_no_exp_df)
+            #print(all_df)
+
+            print("Saving tables on Google Drive . . .")
+
+            file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
+            file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
+
+            print("Done.\n")
+
+
+        """MAKENI"""
+        print("Groups Preparation FOR MAKENI. . . ")
 
         expected_numbers = pd.read_excel(tokens.PATH_TO_EXPECTED_NUMBERS)
-        proj_expected = expected_numbers[expected_numbers['HF'] == proj].T[2:].T
-        #phase1_expected = proj_expected[proj_expected['Phase'] == 'Phase 1']
-        #phase2_expected = proj_expected[proj_expected['Phase'] == 'Phase 2']
-        #phase3_expected = proj_expected[proj_expected['Phase'] == 'Phase 3']
-
+        proj_expected = expected_numbers[expected_numbers['HF'] == 'makeni'].T[2:].T
         group1_expected = proj_expected[proj_expected['Group'] == 'Group 1']
         group2_expected = proj_expected[proj_expected['Group'] == 'Group 2']
 
-        phase1_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
-        phase2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
-        phase3_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
-        """all_together_phase_1_group2_t3 = pd.DataFrame(columns=['mrs_date_t3','mrs_study_number_t2_t3','int_random_letter'])"""
-        for subproj in tokens.REDCAP_PROJECTS_ICARIA:
-            if str(proj) in str(subproj):
-                print("[{}] Getting MRS records from {}...".format(datetime.now(), subproj))
-                project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[subproj])
-                phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase1_df, index='Group 1').fillna(0)
-                phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase1_df, index='Group 2').fillna(0)
-                phase1_df['Phase'] = 'Phase 1'
+        group1_makeni_df = pd.DataFrame.from_dict(group1_dict)
+        group1_makeni_df = group1_makeni_df.T.reset_index().rename(columns={0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 'index': 'Phase'})
+        group1_makeni_df['index'] = 'group 1'
+        group1_makeni_df = group1_makeni_df.set_index('index')[['A', 'B', 'C', 'D', 'E', 'F', 'Phase']]
 
-                """
-                all_together_phase_1_group2_t3 = export_records_2(project, subproj, ['mrs_study_number_t2_t3','mrs_date_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", all_together_phase_1_group2_t3, index='Group 2').fillna(0)
-                """
-                phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase2_df, index='Group 1',print_=True).fillna(0)
-                phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase2_df, index='Group 2').fillna(0)
-                phase2_df['Phase'] = 'Phase 2'
-                phase3_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_t2_group_t3]='3' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase3_df, index='Group 1').fillna(0)
-                phase3_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_t2_group_t3]='3' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase3_df, index='Group 2').fillna(0)
-                phase3_df['Phase'] = 'Phase 3'
-        phase1_df= phase1_df.reset_index().groupby('index').sum(numeric_only=True)
-        phase2_df= phase2_df.reset_index().groupby('index').sum(numeric_only=True)
-        phase3_df= phase3_df.reset_index().groupby('index').sum(numeric_only=True)
-        phase1_df['Phase'] = 'Phase 1'
-        phase2_df['Phase'] = 'Phase 2'
-        phase3_df['Phase'] = 'Phase 3'
-        """
-        all_together_phase_1_group2_t3 = all_together_phase_1_group2_t3.sort_values('mrs_date_t3')
-        print(all_together_phase_1_group2_t3)
-        print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='E'])
-        print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='C'])
-        """
-        together = pd.concat([phase1_df,phase2_df,phase3_df]).reset_index()
-        #print(together)
-        group1_df = together[together['index']=='Group 1'].set_index(('index'))
-        group2_df = together[together['index']=='Group 2'].set_index(('index'))
-        #print(group1_df)
-        #print(group2_df)
-        print("Groups Preparation . . . ")
+        group2_makeni_df = pd.DataFrame.from_dict(group2_dict)
+        group2_makeni_df = group2_makeni_df.T.reset_index().rename(columns={0: 'A', 1: 'B', 2: 'C', 3: 'D', 4: 'E', 5: 'F', 'index': 'Phase'})
+        group2_makeni_df['index'] = 'group 2'
+        group2_makeni_df = group2_makeni_df.set_index('index')[['A', 'B', 'C', 'D', 'E', 'F', 'Phase']]
 
-        group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_df, params.HF_cohort_sample_size[proj][1], group1_expected, group_name='Group 1')
-        group2_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group2_df, params.HF_cohort_sample_size[proj][2], group2_expected, group_name='Group 2')
-        all_df = pd.concat([group1_group_df,group2_group_df])
-
-        group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group1_group_df)
-        group2_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group2_group_df)
-        all_no_exp_df = pd.concat([group1_group_no_exp_df,group2_group_no_exp_df])
-        #print(all_no_exp_df)
-        #print(all_df)
+        MAK_group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_makeni_df,params.HF_cohort_sample_size['makeni'][1],group1_expected, group_name='Group 1',makeni_A_compensation=True)
+        MAK_group2_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group2_makeni_df,params.HF_cohort_sample_size['makeni'][2],group2_expected, group_name='Group 2')
+        all_MAK_df = pd.concat([MAK_group1_group_df, MAK_group2_group_df])
+        MAK_group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(MAK_group1_group_df)
+        MAK_group2_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(MAK_group2_group_df)
+        MAK_all_no_exp_df = pd.concat([MAK_group1_group_no_exp_df, MAK_group2_group_no_exp_df])
 
         print("Saving tables on Google Drive . . .")
-        file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
-        file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
+        file_to_drive('Bombali', MAK_all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
+        file_to_drive('Makeni', all_MAK_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
 
         print("Done.\n")
+
 
     def groups_preparation_no_exp_t3(self,group):
         df_to_compare = group[['Sample Size','A','B','C','D','E','F']].astype(int)
@@ -287,7 +343,7 @@ class MRS_T3_FUNCTIONS:
         #print(to_set)
         return to_set
 
-    def groups_preparation_per_groups_t3(self, group, sample_size_group, expected, group_name):
+    def groups_preparation_per_groups_t3(self, group, sample_size_group, expected, group_name, makeni_A_compensation=False):
         expected = expected[expected['Phase'] != 'Total exp']
 
         expected['Proportion']  = expected['Proportion'].astype(float)
@@ -298,6 +354,43 @@ class MRS_T3_FUNCTIONS:
         ##group = group.groupby('index').sum().astype(int) ## OLD VERSION THAT GIVES A FUTUREWARNING ADVICE
         total['Phase'] = "Total"
 
+        if makeni_A_compensation:
+            finish = False
+            print(group)
+            initial_expected = expected.copy()
+            to_compensate = expected['A'][50]-group['A'][2]
+            compensation = math.ceil(to_compensate/2)
+
+            if ((group['B'][2] - expected['B'][50]) >= compensation and
+                    (group['C'][2] - expected['C'][50]) >= compensation and
+                    (group['D'][2] - expected['D'][50]) >= compensation and
+                    (group['E'][2] - expected['E'][50]) >= compensation and
+                    (group['F'][2] - expected['F'][50]) >= compensation):
+                print('We already get the minimum number of participants, so please, stop the recruitment.')
+                finish=True
+            list_values = [(group['B'][2] - expected['B'][50])-to_compensate,(group['C'][2] - expected['C'][50])-to_compensate,
+                           (group['D'][2] - expected['D'][50])-to_compensate,(group['E'][2] - expected['E'][50])-to_compensate,
+                           (group['F'][2] - expected['F'][50])-to_compensate]
+
+            count = 0
+            for element in list_values:
+                if element >= 0:
+                    count+=1
+
+            if count >= 4:
+                print('4 of the 5 letters have the A number needed, the compensation should finish')
+                finish = True
+
+            if finish == False:
+                expected.loc[50,'B'] += compensation
+                expected.loc[50,'C'] += compensation
+                expected.loc[50,'D'] += compensation
+                expected.loc[50,'E'] += compensation
+                expected.loc[50,'F'] += compensation
+            else:
+                pass
+
+            print(expected)
         #        group1_total = [group['A'].sum(),group['B'].sum(),group['C'].sum(),group['D'].sum(),group['E'].sum(),group['F'].sum()]
         #        group.loc['Total'] = total
         group = group.set_index('Phase')
@@ -491,3 +584,64 @@ class MRS_T3_FUNCTIONS:
         print(entire_excel_sheet.head())
 
         file_to_drive(sheet,entire_excel_sheet,tokens.dict_files_t3[proj],tokens.drive_folder,index_included=False)
+
+
+
+def MRS_number_participants_uptodate(date='2023-11-22 0:0:0'):
+    date_ = datetime.strptime(date,'%Y-%m-%d %H:%M:%S')
+
+    cb = 0
+    ct2 = 0
+    ct3 = 0
+    for pr in tokens.REDCAP_PROJECTS_ICARIA_ALL:
+        print(pr)
+        project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA_ALL[pr])
+        df = project.export_records(format='df', fields=params.LOGIC_FIELDS_MRS)
+
+        # MRS BASELINE
+        try:
+            mrsb_df = df.reset_index().set_index('record_id')[['mrs_study_number','mrs_date']].dropna()
+            if cb == 0:
+                mrsb = mrsb_df.copy()
+            else:
+                mrsb = pd.concat([mrsb,mrsb_df])
+            cb += 1
+        except:
+            pass
+        # MRS T2
+        try:
+            mrs_t2_df = df.reset_index().set_index('record_id')[['mrs_study_number_t2','mrs_date_t2','mrs_t2_group']]
+            mrs_t2_df = mrs_t2_df[mrs_t2_df['mrs_study_number_t2'].notnull()]#.dropna()
+            if ct2 == 0:
+                mrst2 = mrs_t2_df.copy()
+            else:
+                mrst2 = pd.concat([mrst2, mrs_t2_df])
+            ct2 += 1
+        except:
+            pass
+
+        # MRS T3
+        try:
+            mrs_t3_df = df.reset_index().set_index('record_id')[['mrs_study_number_t2_t3','mrs_date_t3','mrs_t2_group_t3']]#.dropna()
+            mrs_t3_df = mrs_t3_df[mrs_t3_df['mrs_study_number_t2_t3'].notnull()]
+            if ct3 == 0:
+                mrst3 = mrs_t3_df.copy()
+            else:
+                mrst3 = pd.concat([mrst3, mrs_t3_df])
+            ct3 += 1
+        except:
+            pass
+
+    print(mrsb.sort_values('mrs_date'))
+    print(mrst2.sort_values('mrs_study_number_t2'))
+    print(mrst3.sort_values('mrs_date_t3'))
+
+    print(mrst2['mrs_study_number_t2'].unique())
+    mrsb = mrsb.sort_values('mrs_date')
+    mrst2 = mrst2.sort_values('mrs_date_t2')
+    mrst3 = mrst3.sort_values('mrs_date_t3')
+
+
+    file_to_drive('MRS Baseline', mrsb, tokens.drive_file_name_mrs_counts, tokens.drive_folder)
+    file_to_drive('MRS T2', mrst2, tokens.drive_file_name_mrs_counts, tokens.drive_folder)
+    file_to_drive('MRS T3', mrst3, tokens.drive_file_name_mrs_counts, tokens.drive_folder)
