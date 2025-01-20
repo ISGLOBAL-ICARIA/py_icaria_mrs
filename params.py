@@ -46,9 +46,9 @@ ALERT_LOGIC_FIELDS = [
     'study_number', 'reachable_status', 'int_random_letter', 'death_date', 'phone_child_status','wdrawal_date'
 ]
 
-
+LOGIC_FIELDS_MRS_T1 = ['record_id','nps_a_id', 'mrs_study_number','mrs_date'
+]
 LOGIC_FIELDS_MRS = [
-    'record_id','mrs_study_number_t2_t3','mrs_date_t3','mrs_t2_group_t3',
+    'record_id','mrs_study_number_t2_t3','mrs_date_t3','mrs_t2_group_t3', 'nps_a_id',
     'mrs_study_number_t2','mrs_t2_group','mrs_date_t2', 'mrs_study_number','mrs_date'
 ]
-

@@ -323,7 +323,9 @@ class MRS_T3_FUNCTIONS:
         group2_makeni_df['index'] = 'group 2'
         group2_makeni_df = group2_makeni_df.set_index('index')[['A', 'B', 'C', 'D', 'E', 'F', 'Phase']]
 
+        print(group1_makeni_df)
         MAK_group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_makeni_df,params.HF_cohort_sample_size['makeni'][1],group1_expected, group_name='Group 1',makeni_A_compensation=True)
+        print(MAK_group1_group_df)
         MAK_group2_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group2_makeni_df,params.HF_cohort_sample_size['makeni'][2],group2_expected, group_name='Group 2')
         all_MAK_df = pd.concat([MAK_group1_group_df, MAK_group2_group_df])
         MAK_group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(MAK_group1_group_df)
@@ -358,6 +360,8 @@ class MRS_T3_FUNCTIONS:
             finish = False
             print(group)
             initial_expected = expected.copy()
+            print(expected)
+            print(expected['A'][50])
             to_compensate = expected['A'][50]-group['A'][2]
             compensation = math.ceil(to_compensate/2)
 
@@ -446,7 +450,7 @@ class MRS_T3_FUNCTIONS:
         records_letter_g1 = pd.DataFrame()
         records_letter_g2 = pd.DataFrame()
         for project_key in tokens.REDCAP_PROJECTS_ICARIA:
-            if proj in str(project_key):
+            if proj in str(project_key) and project_key != 'HF16.01':
 
                 print("\t\t[{}] Getting MRS records from {}...".format(datetime.now(), project_key))
                 project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA[project_key])
@@ -526,7 +530,6 @@ class MRS_T3_FUNCTIONS:
                         about_18m_not_seen_g2.append(l)
                     else:
                         about_18m_not_seen_g1.append(l)
-
                 records_letter_g1 = MRS_T3_FUNCTIONS().get_letters_from_candidates_t3(project, about_18m_not_seen_g1,records_letter_g1)
                 records_letter_g2 = MRS_T3_FUNCTIONS().get_letters_from_candidates_t3(project, about_18m_not_seen_g2,records_letter_g2)
 
@@ -547,6 +550,8 @@ class MRS_T3_FUNCTIONS:
                 filter_logic="[study_number] != '' and [event-name]='epipenta1_v0_recru_arm_1'"
             )
             # Group the study_numbers per letter
+            print(about_18m_not_seen)
+            print(df_letters)
             if records_letter.empty:
                 records_letter = df_letters.groupby('int_random_letter')['study_number'].apply(list)
             else:
@@ -597,10 +602,11 @@ def MRS_number_participants_uptodate(date='2023-11-22 0:0:0'):
         print(pr)
         project = redcap.Project(tokens.URL, tokens.REDCAP_PROJECTS_ICARIA_ALL[pr])
         df = project.export_records(format='df', fields=params.LOGIC_FIELDS_MRS)
+        df_t1 = project.export_records(format='df', fields=params.LOGIC_FIELDS_MRS_T1)
 
         # MRS BASELINE
         try:
-            mrsb_df = df.reset_index().set_index('record_id')[['mrs_study_number','mrs_date']].dropna()
+            mrsb_df = df_t1.reset_index().set_index('record_id')[['mrs_study_number','nps_a_id','mrs_date']].dropna()
             if cb == 0:
                 mrsb = mrsb_df.copy()
             else:
@@ -608,6 +614,7 @@ def MRS_number_participants_uptodate(date='2023-11-22 0:0:0'):
             cb += 1
         except:
             pass
+
         # MRS T2
         try:
             mrs_t2_df = df.reset_index().set_index('record_id')[['mrs_study_number_t2','mrs_date_t2','mrs_t2_group']]
@@ -636,11 +643,9 @@ def MRS_number_participants_uptodate(date='2023-11-22 0:0:0'):
     print(mrst2.sort_values('mrs_study_number_t2'))
     print(mrst3.sort_values('mrs_date_t3'))
 
-    print(mrst2['mrs_study_number_t2'].unique())
     mrsb = mrsb.sort_values('mrs_date')
     mrst2 = mrst2.sort_values('mrs_date_t2')
     mrst3 = mrst3.sort_values('mrs_date_t3')
-
 
     file_to_drive('MRS Baseline', mrsb, tokens.drive_file_name_mrs_counts, tokens.drive_folder)
     file_to_drive('MRS T2', mrst2, tokens.drive_file_name_mrs_counts, tokens.drive_folder)
