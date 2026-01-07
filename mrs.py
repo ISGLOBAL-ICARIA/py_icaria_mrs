@@ -1,19 +1,24 @@
 import numpy as np
 import pandas as pd
-
 import params
 import tokens
 import gspread
 from datetime import datetime
 import math
-
 from gspread_dataframe import set_with_dataframe
 import redcap
-
 from dateutil.relativedelta import relativedelta
 
 
 def file_to_drive(worksheet,df,drive_file_name,folder_id,index_included=True):
+    """
+        Used to upload a Pandas DataFrame into a specific drive file and worksheet
+
+    :param worksheet: GDrive worksheet to be updated
+    :param df: dataframe to be uplodaed into Gdrive
+    :param drive_file_name: GDrive file name
+    :param folder_id: Gdrive folder ID needed to connect to Gdrive.
+    """
     gc = gspread.oauth(tokens.path_credentials)
     sh = gc.open(title=drive_file_name,folder_id=folder_id)
     set_with_dataframe(sh.worksheet(worksheet), df,include_index=index_included)
@@ -44,6 +49,10 @@ def days_to_birthday(dob, fu):
     return (dob + relativedelta(months=+fu) - today).days
 
 def export_records(project,project_key,fields_,filter_logic,final_df, index=False,print_=False):
+    """
+    Function to export all records with specific fields and filter logic, defined as params
+    :return: dataframe filled with records and defined fields, with specific logic.
+    """
     if index == False:
         index = project_key
 
@@ -69,32 +78,6 @@ def export_records(project,project_key,fields_,filter_logic,final_df, index=Fals
 
     return final_df.fillna(0)
 
-"""
-def export_records_2(project,project_key,fields_,filter_logic,final_df, index=False):
-    if index == False:
-        index = project_key
-    try:
-
-        df_mrs = project.export_records(format='df', fields=fields_,filter_logic=filter_logic)
-        record_ids = df_mrs.index.get_level_values('record_id')
-        df_mrs = df_mrs.reset_index().set_index('record_id')
-        df_mrs = df_mrs[['mrs_date_t3','mrs_study_number_t2_t3']]
-        #print(df_mrs)
-        df_letters = project.export_records(
-            format='df',
-            records=list(record_ids.drop_duplicates()),
-            fields=["study_number", "int_random_letter"],
-            filter_logic="[study_number] != ''"
-        )
-        df_letters_ni = df_letters.reset_index().set_index('record_id')
-        #print(df_letters_ni)
-        together = pd.concat([df_mrs,df_letters_ni[['int_random_letter']]],axis=1,join='inner')
-        #print(together)
-        final_df = pd.concat([final_df,together])
-    except:
-        pass
-    return final_df
-"""
 class MRS_T2_FUNCTIONS:
     """
     T2 Project functions
@@ -213,7 +196,11 @@ class MRS_T3_FUNCTIONS:
         pass
 
     def mrs_t3_summary_tool(self, proj):
-        total_group1_df = pd.DataFrame(columns=['A','B','C','D','E','F','Phase'])
+        """
+        Genereate the summary tool for MRS T3 from all MRS data in REDCap.
+        :return: Save to the Google Drive Sheet the MRS T3 summary for each Phase of the MRS project
+        """
+
         group1_dict = {'Phase 1': [0,0,0,0,0,0], 'Phase 2': [0,0,0,0,0,0], 'Phase 3': [0,0,0,0,0,0]}
         group2_dict = {'Phase 1': [0,0,0,0,0,0], 'Phase 2': [0,0,0,0,0,0], 'Phase 3': [0,0,0,0,0,0]}
 
@@ -230,7 +217,7 @@ class MRS_T3_FUNCTIONS:
             phase1_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
             phase2_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
             phase3_df = pd.DataFrame(columns=['A', 'B', 'C', 'D', 'E', 'F'])
-            """all_together_phase_1_group2_t3 = pd.DataFrame(columns=['mrs_date_t3','mrs_study_number_t2_t3','int_random_letter'])"""
+
             for subproj in tokens.REDCAP_PROJECTS_ICARIA:
                 if str(proj) in str(subproj):
                     print("[{}] Getting MRS records from {}...".format(datetime.now(), subproj))
@@ -239,9 +226,6 @@ class MRS_T3_FUNCTIONS:
                     phase1_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase1_df, index='Group 2').fillna(0)
                     phase1_df['Phase'] = 'Phase 1'
 
-                    """
-                    all_together_phase_1_group2_t3 = export_records_2(project, subproj, ['mrs_study_number_t2_t3','mrs_date_t3'], "([mrs_study_number_t2_t3]!='') and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_nasophar_swab_b_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='1' and [epipenta1_v0_recru_arm_1][int_azi]='1' and  ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", all_together_phase_1_group2_t3, index='Group 2').fillna(0)
-                    """
                     phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ( ([epimvr1_v4_iptisp4_arm_1][int_azi]!='1' and [epivita_v5_iptisp5_arm_1][int_azi]!='1') or [epimvr2_v6_iptisp6_arm_1][int_azi]!='1' )", phase2_df, index='Group 1',print_=True).fillna(0)
                     phase2_df = export_records(project, subproj, ['mrs_study_number_t2_t3'], "([mrs_study_number_t2_t3]!='')  and [mrs_nasophar_swab_a_t2_t3]='1' and [mrs_rectal_swab_t2_t3]='1' and [mrs_t2_group_t3]='2' and [epipenta1_v0_recru_arm_1][int_azi]='1' and ([epimvr1_v4_iptisp4_arm_1][int_azi]='1' or [epivita_v5_iptisp5_arm_1][int_azi]='1') and [epimvr2_v6_iptisp6_arm_1][int_azi]='1'", phase2_df, index='Group 2').fillna(0)
                     phase2_df['Phase'] = 'Phase 2'
@@ -254,14 +238,8 @@ class MRS_T3_FUNCTIONS:
             phase1_df['Phase'] = 'Phase 1'
             phase2_df['Phase'] = 'Phase 2'
             phase3_df['Phase'] = 'Phase 3'
-            """
-            all_together_phase_1_group2_t3 = all_together_phase_1_group2_t3.sort_values('mrs_date_t3')
-            print(all_together_phase_1_group2_t3)
-            print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='E'])
-            print(all_together_phase_1_group2_t3[all_together_phase_1_group2_t3['int_random_letter']=='C'])
-            """
+
             together = pd.concat([phase1_df,phase2_df,phase3_df]).reset_index()
-            #print(together)
             group1_df = together[together['index']=='Group 1'].set_index(('index'))
             group2_df = together[together['index']=='Group 2'].set_index(('index'))
 
@@ -269,7 +247,6 @@ class MRS_T3_FUNCTIONS:
                 group1_df_to_join =group1_df.reset_index(drop=True).set_index('Phase')
                 for k,el in group1_df_to_join.T.items():
                     res = list()
-                    #print(k,list(el))
                     for i in range(0, len(el)):
                         res.append(el[i]+group1_dict[k][i])
                     group1_dict[k] = res
@@ -278,15 +255,11 @@ class MRS_T3_FUNCTIONS:
                 group2_df_to_join = group2_df.reset_index(drop=True).set_index('Phase')
                 for k, el in group2_df_to_join.T.items():
                     res = list()
-                    #print(k, list(el))
                     for i in range(0, len(el)):
                         res.append(el[i] + group2_dict[k][i])
                     group2_dict[k] = res
-                #print(group1_dict)
 
-            #print(group2_df)
             print("Groups Preparation . . . ")
-
             group1_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group1_df, params.HF_cohort_sample_size[proj][1], group1_expected, group_name='Group 1')
             group2_group_df = MRS_T3_FUNCTIONS().groups_preparation_per_groups_t3(group2_df, params.HF_cohort_sample_size[proj][2], group2_expected, group_name='Group 2')
             all_df = pd.concat([group1_group_df,group2_group_df])
@@ -294,20 +267,15 @@ class MRS_T3_FUNCTIONS:
             group1_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group1_group_df)
             group2_group_no_exp_df = MRS_T3_FUNCTIONS().groups_preparation_no_exp_t3(group2_group_df)
             all_no_exp_df = pd.concat([group1_group_no_exp_df,group2_group_no_exp_df])
-            #print(all_no_exp_df)
-            #print(all_df)
 
             print("Saving tables on Google Drive . . .")
-
             file_to_drive(proj, all_no_exp_df, tokens.drive_file_name_t3, tokens.drive_folder, index_included=False)
             file_to_drive(proj, all_df, tokens.drive_file_name_t3_expected, tokens.drive_folder, index_included=False)
 
             print("Done.\n")
 
-
-        """MAKENI"""
+        """MAKENI HFs"""
         print("Groups Preparation FOR MAKENI. . . ")
-
         expected_numbers = pd.read_excel(tokens.PATH_TO_EXPECTED_NUMBERS)
         proj_expected = expected_numbers[expected_numbers['HF'] == 'makeni'].T[2:].T
         group1_expected = proj_expected[proj_expected['Group'] == 'Group 1']
@@ -342,26 +310,24 @@ class MRS_T3_FUNCTIONS:
     def groups_preparation_no_exp_t3(self,group):
         df_to_compare = group[['Sample Size','A','B','C','D','E','F']].astype(int)
         to_set = pd.concat([group[['Group','Phase']].loc[[0,2,4]].reset_index(drop=True),df_to_compare.diff().loc[[1,3,5]].reset_index(drop=True)], axis=1)
-        #print(to_set)
         return to_set
 
-    def groups_preparation_per_groups_t3(self, group, sample_size_group, expected, group_name, makeni_A_compensation=False):
-        expected = expected[expected['Phase'] != 'Total exp']
+    def groups_preparation_per_groups_t3(self, group, sample_size_group, expected, makeni_A_compensation=False):
+        """
+        This function works preparing the number of recruitments per group, joining all different subprojects if exist
+        and obtaining only one row per project.
+        """
 
+        expected = expected[expected['Phase'] != 'Total exp']
         expected['Proportion']  = expected['Proportion'].astype(float)
         expected = expected.round({'Proportion':2})
 
         group = group.reset_index()
         total = group.groupby('index').sum(numeric_only=True).reset_index()
-        ##group = group.groupby('index').sum().astype(int) ## OLD VERSION THAT GIVES A FUTUREWARNING ADVICE
         total['Phase'] = "Total"
 
         if makeni_A_compensation:
             finish = False
-            print(group)
-            initial_expected = expected.copy()
-            print(expected)
-            print(expected['A'][50])
             to_compensate = expected['A'][50]-group['A'][2]
             compensation = math.ceil(to_compensate/2)
 
@@ -375,7 +341,6 @@ class MRS_T3_FUNCTIONS:
             list_values = [(group['B'][2] - expected['B'][50])-to_compensate,(group['C'][2] - expected['C'][50])-to_compensate,
                            (group['D'][2] - expected['D'][50])-to_compensate,(group['E'][2] - expected['E'][50])-to_compensate,
                            (group['F'][2] - expected['F'][50])-to_compensate]
-
             count = 0
             for element in list_values:
                 if element >= 0:
@@ -393,10 +358,6 @@ class MRS_T3_FUNCTIONS:
                 expected.loc[50,'F'] += compensation
             else:
                 pass
-
-            print(expected)
-        #        group1_total = [group['A'].sum(),group['B'].sum(),group['C'].sum(),group['D'].sum(),group['E'].sum(),group['F'].sum()]
-        #        group.loc['Total'] = total
         group = group.set_index('Phase')
         sample_size = []
 
@@ -405,48 +366,19 @@ class MRS_T3_FUNCTIONS:
         group['Sample Size'] = sample_size
         group['Proportion'] = ["%.2f" % (float(x) / (sample_size_group / 100)) for x in sample_size]
         group = group.reset_index().rename(columns={'index': 'Group'})
-        #        group['Phase'] = group_name
-        #        group['Group'] = group.index
-        # print(group.sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F'])
-        #print(expected)
-
         group = pd.concat(
             [group.sort_index()[['Group', 'Phase', 'Proportion', 'Sample Size', 'A', 'B', 'C', 'D', 'E', 'F']],
              expected])
         group = group.sort_values('Phase').reset_index(drop=True)
         return group
 
-    def groups_preparation_t3(self,group,sample_size_group, expected,group_name):
-        group = group.reset_index()
-        group['index'] = group['index'].str.split(".").str[0]
-        group = group.groupby('index').sum(numeric_only=True)
-        ##group = group.groupby('index').sum().astype(int) ## OLD VERSION THAT GIVES A FUTUREWARNING ADVICE
-
-        group1_total = [group['A'].sum(),group['B'].sum(),group['C'].sum(),group['D'].sum(),group['E'].sum(),group['F'].sum()]
-        group.loc['Total'] = group1_total
-
-        sample_size = []
-        for k in group.index:
-            sample_size.append(group.T[k].sum())
-        group['Sample Size'] = sample_size
-        group['Proportion'] = ["%.2f"%(x/(sample_size_group/100)) for x in sample_size]
-
-        group['Phase'] = group_name
-        group['Group'] = group.index
-        #print(group.sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F'])
-        #print(expected)
-        group = pd.concat([group.sort_index()[['Phase','Group','Proportion','Sample Size','A','B','C','D','E','F']],expected])
-        group = group.sort_values('Group').reset_index(drop=True)
-        #print(group)
-
-        return group
-
-
     def list_of_candidates_t3(self,proj):
-
+        """
+        List of candidates to be recruited in T3. It is updated every 24h.
+        :return:
+        """
         print("LIST OF PARTICIPANTS for {}\n".format(proj))
 
-        records_letter = pd.DataFrame()
         records_letter_g1 = pd.DataFrame()
         records_letter_g2 = pd.DataFrame()
         for project_key in tokens.REDCAP_PROJECTS_ICARIA:
@@ -467,6 +399,7 @@ class MRS_T3_FUNCTIONS:
                 # First: Filter those older than 17 months oldº
                 about_18m = dobs[dobs.apply(calculate_age_months) >= params.about_to_turn_18]
                 if about_18m.size > 0:
+                    today = datetime.today()
                     about_18m = about_18m[about_18m.apply(days_to_birthday, fu=18) < params.days_before_18]
                 # Filter those childs with last azi dose > 2.5 months (75 days)
                 less_than_75_days = x[x['int_azi']==1]
@@ -513,7 +446,7 @@ class MRS_T3_FUNCTIONS:
                     about_18m_not_seen = about_18m_not_seen.difference(records_endfu)
 
                 # Removing participants who received a wrong azi/Pbo administration letter
-                about_18m_not_seen = about_18m_not_seen.difference(params.not_recruitable_participants)
+                about_18m_not_seen = about_18m_not_seen.difference(tokens.not_recruitable_participants)
 
                 ### GET GROUP 1 OR GROUP 2
                 ## GROUP 2
@@ -566,9 +499,9 @@ class MRS_T3_FUNCTIONS:
         return records_letter
 
     def create_and_upload_sheet_drive(self,proj,records_letter,group):
-        # In order to write into the Google Sheet, we need to determine all the space used to save it in a square matrix
         new_dict = {}
         max_size = 0
+        #In order to write into the Google Sheet, we need to determine all the space used to save it in a square matrix
         for k, el in records_letter.items():
             if len(el) > max_size:
                 max_size = len(el)
@@ -583,18 +516,18 @@ class MRS_T3_FUNCTIONS:
         blank_df = pd.DataFrame(index=np.arange(100), columns=['A', 'B', 'C', 'D', 'E', 'F'])
         dict_to_excel = pd.DataFrame(data=new_dict)
         entire_excel_sheet = pd.concat([dict_to_excel, blank_df], ignore_index=True)[['A', 'B', 'C', 'D', 'E', 'F']]
-        file_name = tokens.dict_files_t3[proj]
         sheet = proj + "." + group
-        print(sheet)
         print(entire_excel_sheet.head())
 
         file_to_drive(sheet,entire_excel_sheet,tokens.dict_files_t3[proj],tokens.drive_folder,index_included=False)
 
 
+def MRS_number_participants_uptodate():
+    """
+    This function gives the number of MRS participants up to date for each data point (Baseline, T2 or T3)
 
-def MRS_number_participants_uptodate(date='2023-11-22 0:0:0'):
-    date_ = datetime.strptime(date,'%Y-%m-%d %H:%M:%S')
-
+    :return: each dataset from each timepoint is saved in a different Gdrive document to be checked
+    """
     cb = 0
     ct2 = 0
     ct3 = 0
@@ -638,10 +571,6 @@ def MRS_number_participants_uptodate(date='2023-11-22 0:0:0'):
             ct3 += 1
         except:
             pass
-
-    print(mrsb.sort_values('mrs_date'))
-    print(mrst2.sort_values('mrs_study_number_t2'))
-    print(mrst3.sort_values('mrs_date_t3'))
 
     mrsb = mrsb.sort_values('mrs_date')
     mrst2 = mrst2.sort_values('mrs_date_t2')
